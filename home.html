@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title></title>
+<style >
+    body{
+        background-color: black;
+        color: White;
+        text-align: center;
+    }
+    #center{
+        height: 610px;
+        width:460px;
+        margin-left: auto;
+        margin-right:auto;
+    }
+</style>
+    <script src="jquery-1.11.1.min.js"></script>
+    <script type="text/javascript" src="simpleGame.js"></script>
+    <script type="text/javascript">
+            window.addEventListener("keydown", function(e) {
+    // space and arrow keys
+    if([32, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
+        e.preventDefault();
+    }
+}, false);
+            var scene;
+            var singleplayer;
+            var twoplayer;
+            var character1;
+            var character2;
+            var smallsprite1;
+            var smallsprite12;
+            var smallsprite2;
+            var smallsprite22;
+            var selected;
+            var maintext;
+            var maintext2;
+            var lives1;
+            var lives2;
+            var lost1;
+            var lost2;
+            var gametime;
+            var panels;
+            var numRowsPanels;
+            var legalRowPanels;
+            var panelTimer;
+            var prevpanels;
+            var frequency;
+            var c1DeathTime;
+            var c2DeathTime;
+            var monster;
+            var monsterTimer;
+            var monsterLife;
+            var bulletArray;
+            var numBullets;
+            var firstbullets;
+            var bulletTimer;
+            var freeze;
+            var freezeactive;
+            var freezetimer;
+            var frozen;
+            var frozentimer;
+            var twoplayerbullet;
+            var screwsecond;
+            var screwfirst;
+            var twoplayerbulletactive;
+            var twoplayerbullettimer;
+            var collisiontime;
+            var sound;
+            
+        function init(){
+             scene=new Scene();
+             scene.setSize(450,600);
+             selected=false;
+             singleplayer=false;
+             maintext="";
+             maintext2="";
+             lives1=2;
+             lives2=2;
+             lost1=false;
+             lost2=false;
+             gametime=new Timer();
+             panelTimer=new Timer();
+             panels=new Array();
+             prevpanels=[true,true,true,true,true,true,true,true];
+             numRowsPanels=0;
+             legalRowPanels=0;
+             frequency=1.4;
+             frozen=false;
+             freezetimer=new Timer();
+             c1DeathTime=new Timer();
+             c2DeathTime=new Timer();
+             monsterTimer=new Timer();
+             monsterLife=new Timer();
+             bulletTimer=new Timer();
+             bulletArray=new Array();
+             numBullets=0;
+             collisiontime=-1.0;
+             freezeactive=false;
+             firstbullets=0;
+             twoplayerbullettimer=new Timer();
+             twoplayerbulletactive=false;
+             freezetimer=new Timer();
+             frozentimer=new Timer();
+             screwsecond=false;
+             screwfirst=false;
+             monster=new Sprite(scene,"monster.png",30,30);
+             monster.setSpeed(0);
+             twoplayerbullet=new Sprite(scene,"monster.png",30,30);
+             twoplayerbullet.setSpeed(0);
+             monster.setPosition(225,2);
+             freeze=new Sprite(scene,"freeze.png",30,30);
+             character1=new Sprite(scene,"character1.png",27,27);
+             character2=new Sprite(scene,"opponent.png",27,27);
+             smallsprite1=new Sprite(scene,"character1.png",10,10);
+             smallsprite12=new Sprite(scene,"character1.png",10,10);
+             smallsprite2=new Sprite(scene,"opponent.png",10,10);
+             smallsprite22=new Sprite(scene,"opponent.png",10,10);
+             smallsprite1.setSpeed(0);
+             smallsprite12.setSpeed(0);
+             smallsprite2.setSpeed(0);
+             smallsprite22.setSpeed(0);
+             character1.setSpeed(0);
+             character2.setSpeed(0);
+             character1.setBoundAction(OTHERTHING);
+             character2.setBoundAction(OTHERTHING);
+             character1.setPosition(243,582);
+             character2.setPosition(207,582);
+             smallsprite1.setPosition(440,590);
+             smallsprite12.setPosition(425,590);
+             smallsprite2.setPosition(10,590);
+             smallsprite22.setPosition(25,590);
+             //sound=new Sound("pirate.mp3");
+             scene.start();
+        } // end init
+        
+        function update(){
+            scene.clear();
+            if (!selected||lost1||lost2)
+            {
+                var c=scene.canvas;
+                var context=c.getContext("2d");
+                context.font="25px Arial";
+                context.fillStyle="White";
+                context.fillText(maintext,50,100);
+                context.fillText(maintext2,125,150);
+                context.fillText("Press 'Spacebar' for Single Player", 40, 275);
+                context.fillText("Press an Arrow Key for Two Player", 40, 350);
+                if (keysDown[K_SPACE])
+                {
+                    lost1==false;
+                    lost2==false;
+                    selected=true;
+                    singleplayer=true;
+                    twoplayer=false;
+                    //sound.play();
+                }
+                if (keysDown[K_UP]||keysDown[K_DOWN]||keysDown[K_LEFT]||keysDown[K_RIGHT])
+                {
+                    lost1==false;
+                    lost2==false;
+                    selected=true;
+                    twoplayer=true;
+                    singleplayer=false;
+                    //sound.play();
+                }
+                monsterTimer.reset();
+                gametime.reset();
+                paneltimer.reset();
+                c1DeathTime.reset();
+                c2DeathTime.reset();
+                monsterTimer.reset();
+                monsterLife.reset();;
+                bulletTimer.reset();
+                freezetimer.reset();
+                twoplayerbullettimer.reset();
+                
+            }
+            else if (selected && singleplayer)
+            {
+                drawBarrier();
+                handleKeyStrokes();
+                handleSmallSprites();
+                printGameTime();
+                checkCollisionsDeathOne();
+                updateFreeze();
+                character1.update();
+                if (monsterTimer.getElapsedTime()>15)
+                {
+                    if (monsterTimer.getElapsedTime()<15.2)
+                    {
+                        monsterLife.reset();
+                    }
+                    createBullets();
+                    updateMonster();
+                }
+                updateBulletArray();
+                checkCollisionsDeathBulletsOne();
+                //character2.update();
+                createPanels();
+                updatePanels();
+                freezeCollide();
+
+            }
+            else
+            {
+                drawBarrier();
+                handleKeyStrokes();
+                handleSmallSprites();
+                printGameTime();
+                checkCollisionsDeathTwo();
+                checkCollisionsDeathOne();
+                updateFreeze();
+                if (character1.y<=character2.y)
+                {
+                    character2.update();
+                    character1.update();
+                }
+                else
+                {
+                    character1.update();
+                    character2.update();
+                }
+                if (monsterTimer.getElapsedTime()>20)
+                {
+                    if (monsterTimer.getElapsedTime()<20.2)
+                    {
+                        monsterLife.reset();
+                    }
+                    createBullets();
+                    updateMonster();
+                }
+                updateBulletArray();
+                checkCollisionsDeathBulletsOne();
+                checkCollisionsDeathBulletsTwo();
+                createPanels();
+                updatePanels();
+                freezeCollide();
+            }
+            
+        } // end update
+        function freezeCollide()
+        {
+                if (freeze.collidesWith(character1)||freeze.collidesWith(character2))
+                {
+                    freeze.hide();
+                    frozen=true;
+                    frozentimer.reset();
+                }
+        }
+        function updateFreeze()
+        {
+            var random=parseInt(Math.random()*100+1);
+            if (freezeactive)
+            {
+                if (freeze.y>=599)
+                {
+                    freezeactive=false;
+                }
+                freeze.update();
+            }
+            else
+            { 
+                if(freezetimer.getElapsedTime()>20&&random<=40)
+                {
+                    freeze.show();
+                    freezeactive=true;
+                    freeze.setSpeed(6);
+                    freeze.setMoveAngle(180);
+                    freeze.setPosition(parseInt(Math.random()*400+50),3);
+                    freeze.setBoundAction(DIE);
+                    freezetimer.reset();
+                    freeze.update();
+                }
+            }
+        }
+        function checkCollisionsDeathOne()
+        {
+                for(var x=legalRowPanels;x<panels.length;x++)
+                {
+                    for(var i=0;i<panels[x].length;i++)
+                    {
+                        if (c1DeathTime.getElapsedTime()>0.5&&character1.collidesWith(panels[x][i]))
+                        {
+                                lives1--;
+                                c1DeathTime.reset();
+                        }
+                    }
+                }
+        }
+        function checkCollisionsDeathBulletsOne()
+        {
+                for(var x=firstbullets;x<bulletArray.length;x++)
+                {
+                        if (character1.collidesWith(bulletArray[x]))
+                        {
+                            bulletArray[x].hide();
+                            lives1--;
+                        }
+                }
+        }
+        function checkCollisionsDeathBulletsTwo()
+        {
+                for(var x=firstbullets;x<bulletArray.length;x++)
+                {
+                        if (character2.collidesWith(bulletArray[x]))
+                        {
+                            bulletArray[x].hide();
+                            lives2--;
+                        }
+                }
+        }
+        function checkCollisionsDeathTwo()
+        {
+                for(var x=legalRowPanels;x<panels.length;x++)
+                {
+                    for(var i=0;i<panels[x].length;i++)
+                    {
+                        if (c2DeathTime.getElapsedTime()>0.5&&character2.collidesWith(panels[x][i]))
+                        {
+                                lives2--;
+                                c2DeathTime.reset();
+                        }
+                    }
+                }
+        }
+        function drawBarrier()
+        {
+            scene.context.fillStyle="Yellow";
+            scene.context.fillRect(0,100,450,3);
+        }
+        function handleKeyStrokes()
+        {
+             
+            if (keysDown[K_UP]&&keysDown[K_DOWN]&&keysDown[K_LEFT]&&keysDown[K_RIGHT])
+            {
+            }
+            else if (keysDown[K_UP]&&keysDown[K_DOWN]&&keysDown[K_LEFT])
+            {
+                character1.setX(character1.x-12);
+            }
+            else if (keysDown[K_UP]&&keysDown[K_DOWN]&&keysDown[K_RIGHT])
+            {
+                character1.setX(character1.x+12);
+            }
+            else if (keysDown[K_UP]&&keysDown[K_LEFT]&&keysDown[K_RIGHT])
+            {
+                character1.setY(character1.y-12);
+            }
+            else if (keysDown[K_DOWN]&&keysDown[K_RIGHT]&&keysDown[K_LEFT])
+            {
+                character1.setY(character1.y+12);
+            }
+            else if (keysDown[K_DOWN]&&keysDown[K_UP])
+            {
+            }
+            else if (keysDown[K_LEFT]&&keysDown[K_UP])
+            {
+                character1.setX(character1.x-9);
+                character1.setY(character1.y-9);
+            }
+            else if (keysDown[K_RIGHT]&&keysDown[K_UP])
+            {
+                character1.setX(character1.x+9);
+                character1.setY(character1.y-9);
+            }
+            else if (keysDown[K_DOWN]&&keysDown[K_LEFT])
+            {
+                character1.setX(character1.x-9);
+                character1.setY(character1.y+9);
+            }
+            else if (keysDown[K_DOWN]&&keysDown[K_RIGHT])
+            {
+                character1.setX(character1.x+9);
+                character1.setY(character1.y+9);
+            }
+            else if (keysDown[K_RIGHT]&&keysDown[K_LEFT])
+            {
+            }
+            else if (keysDown[K_UP])
+            {
+               character1.setY(character1.y-12);
+            }
+            else if (keysDown[K_DOWN])
+            {
+               character1.setY(character1.y+12);
+            }
+            else if (keysDown[K_LEFT])
+            {
+               character1.setX(character1.x-12);
+            }
+            else if (keysDown[K_RIGHT])
+            {
+               character1.setX(character1.x+12);
+            }
+            else
+            {   
+            }
+            if (keysDown[K_W]&&keysDown[K_S]&&keysDown[K_A]&&keysDown[K_D])
+            {
+            }
+            else if (keysDown[K_W]&&keysDown[K_S]&&keysDown[K_A])
+            {
+                character2.setX(character2.x-12);
+            }
+            else if (keysDown[K_W]&&keysDown[K_S]&&keysDown[K_D])
+            {
+                character2.setX(character2.x+12);
+            }
+            else if (keysDown[K_W]&&keysDown[K_A]&&keysDown[K_D])
+            {
+                character2.setY(character2.y-12);
+            }
+            else if (keysDown[K_S]&&keysDown[K_D]&&keysDown[K_A])
+            {
+                character2.setY(character2.y+12);
+            }
+            else if (keysDown[K_S]&&keysDown[K_W])
+            {
+            }
+            else if (keysDown[K_A]&&keysDown[K_W])
+            {
+                character2.setX(character2.x-9);
+                character2.setY(character2.y-9);
+            }
+            else if (keysDown[K_D]&&keysDown[K_W])
+            {
+                character2.setX(character2.x+9);
+                character2.setY(character2.y-9);
+            }
+            else if (keysDown[K_S]&&keysDown[K_A])
+            {
+                character2.setX(character2.x-9);
+                character2.setY(character2.y+9);
+            }
+            else if (keysDown[K_S]&&keysDown[K_D])
+            {
+                character2.setX(character2.x+9);
+                character2.setY(character2.y+9);
+            }
+            else if (keysDown[K_D]&&keysDown[K_A])
+            {
+            }
+            else if (keysDown[K_W])
+            {
+               character2.setY(character2.y-12);
+            }
+            else if (keysDown[K_S])
+            {
+               character2.setY(character2.y+12);
+            }
+            else if (keysDown[K_A])
+            {
+               character2.setX(character2.x-12);
+            }
+            else if (keysDown[K_D])
+            {
+               character2.setX(character2.x+12);
+            }
+            else
+            {   
+            }
+            
+        }
+        function updateBulletArray()
+        {
+            for(var i=firstbullets;i<bulletArray.length;i++)
+            {
+                bulletArray[i].update();
+            }
+        }
+        function updateMonster()
+        {
+                if (monsterLife.getElapsedTime()>1&&monsterLife.getElapsedTime()<5)
+                {
+                    monster.update();
+                }
+                else if (monsterLife.getElapsedTime()>5)
+                {
+                    monsterTimer.reset();
+                    screwfirst=false;
+                    screwsecond=false;
+                    collisiontime=-1.0;
+                }
+                else
+                {
+                    monster.update();
+                }
+        }
+        function updatePanels()
+        {
+            for(var i=0;i<panels.length;i++)
+            {
+                for(var k=0;k<panels[i].length;k++)
+                {
+                    panels[i][k].update();
+                }
+            }
+        }
+        function createBullets()
+        {
+                    if (bulletTimer.getElapsedTime()>0.6&&monsterLife.getElapsedTime()>1&&monsterLife.getElapsedTime()<5)
+                    {
+                            bulletArray[bulletArray.length]=new Sprite(scene,"greenbullet2.png",10,10);
+                            bulletArray[bulletArray.length-1].setPosition(225,20);
+                            if (singleplayer)
+                            {
+                                var top=225.0-character1.x;
+                                var bottom=Math.sqrt((top*top)+(-20.0+character1.y)*(-20.0+character1.y));
+                                var calculate=top/bottom;
+                                var angle=Math.asin(calculate)*(360/(2*Math.PI));
+                                bulletArray[bulletArray.length-1].setAngle(parseInt((angle))+180);
+                            }
+                            else
+                            {
+                                var random=Math.random()*100+1;
+                                var rvalue=parseInt(random);
+                                if (rvalue<50)
+                                {
+                                    var top=225.0-character1.x;
+                                    var bottom=Math.sqrt((top*top)+(-20.0+character1.y)*(-20.0+character1.y));
+                                    var calculate=top/bottom;
+                                    var angle=Math.asin(calculate)*(360/(2*Math.PI));
+                                    bulletArray[bulletArray.length-1].setAngle(parseInt((angle))+180);
+                                }
+                                else
+                                {
+                                    var top=225.0-character2.x;
+                                    var bottom=Math.sqrt((top*top)+(-20.0+character2.y)*(-20.0+character2.y));
+                                    var calculate=top/bottom;
+                                    var angle=Math.asin(calculate)*(360/(2*Math.PI));
+                                    bulletArray[bulletArray.length-1].setAngle(parseInt((angle))+180);
+                                }
+
+                            }
+                            bulletArray[bulletArray.length-1].setSpeed(25);
+                            bulletArray[bulletArray.length-1].setBoundAction(DIE);
+                            numBullets++;
+                            if (numBullets>10)
+                            {
+                                firstbullets++;
+                            }
+                            bulletTimer.reset();
+                    }
+
+        }
+        function createPanels()
+        {
+            if (gametime.getElapsedTime()>2)
+            {
+                 if (frozen&&frozentimer.getElapsedTime()<9)
+                {
+                    if (panelTimer.getElapsedTime()>2) {
+                        var openpanels7=0;
+                        var hiddens7=new Array();
+                        for(var j7=0;j7<prevpanels.length;j7++)
+                        {
+                            var rand7=Math.floor(Math.random()*100+1);
+                            if (openpanels7==3)
+                            {
+                                break;
+                            }
+                            if (rand7<=40)
+                            {
+                                hiddens7[j7]=true;
+                                openpanels7++;
+                            }
+                            if (j7==6&&openpanels7==0)
+                            {
+                                hiddens7[j7]=true;
+                                hiddens7[j7+1]=true;
+                                break;
+                            }
+                            if (j7==7&&openpanels7==1)
+                            {
+                                hiddens7[7]==true;
+                                openpanels7++;
+                            }
+                        }
+                        var gautam7= new Array();
+                        for(var i7=0;i7<8;i7++)
+                        {
+                            if (i7<6)
+                            {
+                                gautam7[i7]=new Sprite(scene,"panels.png",56,10);
+                                gautam7[i7].setX(i7*56+28);
+                            }
+                            else
+                            {
+                                gautam7[i7]=new Sprite(scene,"panels.png",57,10);
+                                if (i7==7)
+                                {
+                                    gautam7[i7].setX(i7*56+28+1);
+                                }
+                                else
+                                {
+                                    gautam7[i7].setX(i7*56+28);
+                                }
+                            }
+                            gautam7[i7].setY(0);
+                            gautam7[i7].setMoveAngle(180);
+                            gautam7[i7].setSpeed(5);
+                            gautam7[i7].setBoundAction(DIE);
+                            if (hiddens7[i7])
+                            {
+                                gautam7[i7].hide();
+                            }
+                        }
+                        prevpanels=gautam7;
+                        panels[panels.length]=gautam7;
+                        numRowsPanels++;
+                        if (numRowsPanels>6)
+                        {
+                            legalRowPanels++;
+                        }
+                        panelTimer.reset();
+                    }
+                        
+                 }
+                 if (gametime.getElapsedTime()<17)
+                 {
+                   
+                    if (panelTimer.getElapsedTime()>frequency)
+                    {
+                        var openpanels=0;
+                        var hiddens=new Array();
+                        for(var j=0;j<prevpanels.length;j++)
+                        {
+                            var rand=Math.floor(Math.random()*100+1);
+                            if (openpanels==3)
+                            {
+                                break;
+                            }
+                            if (rand<=40)
+                            {
+                                hiddens[j]=true;
+                                openpanels++;
+                            }
+                            if (j==6&&openpanels==0)
+                            {
+                                hiddens[j]=true;
+                                hiddens[j+1]=true;
+                                break;
+                            }
+                            if (j==7&&openpanels==1)
+                            {
+                                hiddens[7]==true;
+                                openpanels++;
+                            }
+                        }
+                        var gautam= new Array();
+                        for(var i=0;i<8;i++)
+                        {
+                            if (i<6)
+                            {
+                                gautam[i]=new Sprite(scene,"panels.png",56,10);
+                                gautam[i].setX(i*56+28);
+                            }
+                            else
+                            {
+                                gautam[i]=new Sprite(scene,"panels.png",57,10);
+                                if (i==7)
+                                {
+                                    gautam[i].setX(i*56+28+1);
+                                }
+                                else
+                                {
+                                    gautam[i].setX(i*56+28);
+                                }
+                            }
+                            gautam[i].setY(0);
+                            gautam[i].setMoveAngle(180);
+                            gautam[i].setSpeed(5);
+                            gautam[i].setBoundAction(DIE);
+                            if (hiddens[i])
+                            {
+                                gautam[i].hide();
+                            }
+                        }
+                        prevpanels=gautam;
+                        panels[panels.length]=gautam;
+                        numRowsPanels++;
+                        if (numRowsPanels>6)
+                        {
+                            legalRowPanels++;
+                        }
+                        panelTimer.reset();
+                    }
+                 }
+                 else if (gametime.getElapsedTime()<34)
+                 {
+                    frequency=1.3;
+                    if (panelTimer.getElapsedTime()>frequency)
+                    {
+                        var openpanels2=0;
+                        var hiddens2=new Array();
+                        for(var j2=0;j2<prevpanels.length;j2++)
+                        {
+                            var rand2=Math.floor(Math.random()*100+1);
+                            if (openpanels2==3)
+                            {
+                                break;
+                            }
+                            if (rand2<=40)
+                            {
+                                hiddens2[j2]=true;
+                                openpanels2++;
+                            }
+                            if (j2==6&&openpanels2==0)
+                            {
+                                hiddens2[j2]=true;
+                                hiddens2[j2+1]=true;
+                                break;
+                            }
+                            if (j2==7&&openpanels2==1)
+                            {
+                                hiddens2[7]==true;
+                                openpanels2++;
+                            }
+                        }
+                        var gautam2=new Array();
+                        for(var i2=0;i2<8;i2++)
+                        {
+                            if (i2<6)
+                            {
+                                gautam2[i2]=new Sprite(scene,"panels.png",56,10);
+                                gautam2[i2].setX(i2*56+28);
+                            }
+                            else
+                            {
+                                gautam2[i2]=new Sprite(scene,"panels.png",57,10);
+                                if (i2==7)
+                                {
+                                    gautam2[i2].setX(i2*56+28+1);
+                                }
+                                else
+                                {
+                                    gautam2[i2].setX(i2*56+28);
+                                }
+                            }
+                            gautam2[i2].setY(0);
+                            gautam2[i2].setMoveAngle(180);
+                            gautam2[i2].setSpeed(5);
+                            gautam2[i2].setBoundAction(DIE);
+                            if (hiddens2[i2])
+                            {
+                                gautam2[i2].hide();
+                            }
+                        }
+                        prevpanels=gautam2;
+                        panels[panels.length]=gautam2;
+                        numRowsPanels++;
+                        if (numRowsPanels>6)
+                        {
+                            legalRowPanels++;
+                        }
+                        panelTimer.reset();
+                    }
+                 }
+                 else if (gametime.getElapsedTime()<51)
+                 {
+                    frequency=1.3;
+                    if (panelTimer.getElapsedTime()>frequency)
+                    {
+                        var openpanels3=0;
+                        var hiddens3=new Array();
+                        for(var j3=0;j3<prevpanels.length;j3++)
+                        {
+                            var rand3=Math.floor(Math.random()*100+1);
+                            if (openpanels3==3)
+                            {
+                                break;
+                            }
+                            if (rand3<=40)
+                            {
+                                hiddens3[j3]=true;
+                                openpanels3++;
+                            }
+                            if (j3==6&&openpanels3==0)
+                            {
+                                hiddens3[j3]=true;
+                                hiddens3[j3+1]=true;
+                                break;
+                            }
+                            if (j3==7&&openpanels3==1)
+                            {
+                                hiddens3[7]==true;
+                                openpanels3++;
+                            }
+                        }
+                        var gautam3=new Array();
+                        for(var i3=0;i3<8;i3++)
+                        {
+                            if (i3<6)
+                            {
+                                gautam3[i3]=new Sprite(scene,"panels.png",56,10);
+                                gautam3[i3].setX(i3*56+28);
+                            }
+                            else
+                            {
+                                gautam3[i3]=new Sprite(scene,"panels.png",57,10);
+                                if (i3==7)
+                                {
+                                    gautam3[i3].setX(i3*56+28+1);
+                                }
+                                else
+                                {
+                                    gautam3[i3].setX(i3*56+28);
+                                }
+                            }
+                            gautam3[i3].setY(0);
+                            gautam3[i3].setMoveAngle(180);
+                            gautam3[i3].setSpeed(5);
+                            gautam3[i3].setBoundAction(DIE);
+                            if (hiddens3[i3])
+                            {
+                                gautam3[i3].hide();
+                            }
+                        }
+                        prevpanels=gautam3;
+                        panels[panels.length]=gautam3;
+                        numRowsPanels++;
+                        if (numRowsPanels>6)
+                        {
+                            legalRowPanels++;
+                        }
+                        panelTimer.reset();
+                    }
+                 }
+                 else if (gametime.getElapsedTime()<68)
+                 {
+                    frequency=1.15;
+                    if (panelTimer.getElapsedTime()>frequency)
+                    {
+                        var openpanels4=0;
+                        var hiddens4=new Array();
+                        for(var j4=0;j4<prevpanels.length;j4++)
+                        {
+                            var rand4=Math.floor(Math.random()*100+1);
+                            if (openpanels4==3)
+                            {
+                                break;
+                            }
+                            if (rand4<=40)
+                            {
+                                hiddens4[j4]=true;
+                                openpanels4++;
+                            }
+                            if (j4==6&&openpanels4==0)
+                            {
+                                hiddens4[j4]=true;
+                                hiddens4[j4+1]=true;
+                                break;
+                            }
+                            if (j4==7&&openpanels4==1)
+                            {
+                                hiddens4[7]==true;
+                                openpanels4++;
+                            }
+                        }
+                        var gautam4=new Array();
+                        for(var i4=0;i4<8;i4++)
+                        {
+                            if (i4<6)
+                            {
+                                gautam4[i4]=new Sprite(scene,"panels.png",56,10);
+                                gautam4[i4].setX(i4*56+28);
+                            }
+                            else
+                            {
+                                gautam4[i4]=new Sprite(scene,"panels.png",57,10);
+                                if (i4==7)
+                                {
+                                    gautam4[i4].setX(i4*56+28+1);
+                                }
+                                else
+                                {
+                                    gautam4[i4].setX(i4*56+28);
+                                }
+                            }
+                            gautam4[i4].setY(0);
+                            gautam4[i4].setMoveAngle(180);
+                            gautam4[i4].setSpeed(5);
+                            gautam4[i4].setBoundAction(DIE);
+                            if (hiddens4[i4])
+                            {
+                                gautam4[i4].hide();
+                            }
+                        }
+                        prevpanels=gautam4;
+                        panels[panels.length]=gautam4;
+                        numRowsPanels++;
+                        if (numRowsPanels>6)
+                        {
+                            legalRowPanels++;
+                        }
+                        panelTimer.reset();
+                    }
+                 }
+                 else
+                 {
+                    frequency=1.05;
+                    if (panelTimer.getElapsedTime()>frequency)
+                    {
+                        var openpanels5=0;
+                        var hiddens5=new Array();
+                        for(var j5=0;j5<prevpanels.length;j5++)
+                        {
+                            var rand5=Math.floor(Math.random()*100+1);
+                            if (openpanels5==3)
+                            {
+                                break;
+                            }
+                            if (rand5<=40)
+                            {
+                                hiddens5[j5]=true;
+                                openpanels5++;
+                            }
+                            if (j5==6&&openpanels5==0)
+                            {
+                                hiddens5[j5]=true;
+                                hiddens5[j5+1]=true;
+                                break;
+                            }
+                            if (j5==7&&openpanels5==1)
+                            {
+                                hiddens5[7]==true;
+                                openpanels5++;
+                            }
+                        }
+                        var gautam5=new Array();
+                        for(var i5=0;i5<8;i5++)
+                        {
+                            if (i5<6)
+                            {
+                                gautam5[i5]=new Sprite(scene,"panels.png",56,10);
+                                gautam5[i5].setX(i5*56+28);
+                            }
+                            else
+                            {
+                                gautam5[i5]=new Sprite(scene,"panels.png",57,10);
+                                if (i5==7)
+                                {
+                                    gautam5[i5].setX(i5*56+28+1);
+                                }
+                                else
+                                {
+                                    gautam5[i5].setX(i5*56+28);
+                                }
+                            }
+                            gautam5[i5].setY(0);
+                            gautam5[i5].setMoveAngle(180);
+                            gautam5[i5].setSpeed(5);
+                            gautam5[i5].setBoundAction(DIE);
+                            if (hiddens5[i5])
+                            {
+                                gautam5[i5].hide();
+                            }
+                        }
+                        prevpanels=gautam5;
+                        panels[panels.length]=gautam5;
+                        numRowsPanels++;
+                        if (numRowsPanels>6)
+                        {
+                            legalRowPanels++;
+                        }
+                        panelTimer.reset();
+                    } 
+                 }
+            }
+        }
+        function printGameTime()
+        {
+                var c=scene.canvas;
+                var context=c.getContext("2d");
+                context.font="15px Arial";
+                context.fillStyle="White";
+                context.fillText(""+gametime.getElapsedTime(),385,20);
+        }
+        function handleSmallSprites()
+        {
+            if (singleplayer)
+            {
+                if (lives1==2)
+                {
+                    smallsprite1.update();
+                    smallsprite12.update();
+                }
+                else if (lives1==1)
+                {
+                    smallsprite1.update(); 
+                }
+                else
+                {
+                    singleplayer=false;
+                    twoplayer=false;
+                    lost1=true;
+                    maintext="GAME OVER, you lasted: ";
+                    maintext2=""+gametime.getElapsedTime()+" seconds!";
+                }
+            }
+            else
+            {
+                
+                if (lives1==2)
+                {
+                    smallsprite1.update();
+                    smallsprite12.update();
+                }
+                else if (lives1==1)
+                {
+                    smallsprite1.update(); 
+                }
+                else
+                {
+                    singleplayer=false;
+                    twoplayer=false;
+                    lost1=true;
+                    maintext="GAME OVER, Red wins after "
+                    maintext2=""+gametime.getElapsedTime()+" seconds!";
+                }
+                if (lives2==2)
+                {
+                    smallsprite2.update();
+                    smallsprite22.update();
+                }
+                else if (lives2==1)
+                {
+                    smallsprite2.update(); 
+                }
+                else
+                {
+                    singleplayer=false;
+                    twoplayer=false;
+                    lost2=true;
+                    maintext="GAME OVER, Blue wins after: ";
+                    maintext2=""+gametime.getElapsedTime()+" seconds!";
+                }
+            }
+        }
+
+    </script>
+</head>
+<body onload="init()">
+    <h1>Nebula Panel Dodge</h1>
+    <p>
+        <b>INSTRUCTIONS:</b>
+    </p>
+    <p>Player 1(BLUE) moves using arrow keys. Player 2 (RED) moves with WASD.</p>
+    <p>The objective is to avoid hitting the panels. Each player has two lives.</p>
+    <p>Hitting a panel or being struck with a bullet will result in the loss of one life.</p>
+    <p>CAN BE PLAYED SINGLE PLAYER OR MULTIPLAYER</p>
+    <div id="center">
+    </div>
+</body>
+</html>
